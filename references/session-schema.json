@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Guided Tour Session State",
+  "description": "Schema for artifacts/{NNN}-{slug}/session.json",
+  "type": "object",
+  "required": ["slug", "phase", "status", "created", "updated"],
+  "properties": {
+    "slug": {
+      "type": "string",
+      "description": "Session identifier in format {NNN}-{name}",
+      "pattern": "^[0-9]{3}-[a-z0-9-]+$"
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["requirements", "research", "planning", "execution", "documentation", "removal"],
+      "description": "Current workflow phase"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["in_progress", "paused", "complete", "aborted"],
+      "description": "Session status"
+    },
+    "created": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "requirement": {
+      "type": ["object", "null"],
+      "properties": {
+        "summary": { "type": "string" },
+        "minimal": { "type": "boolean", "default": false }
+      }
+    },
+    "research": {
+      "type": ["object", "null"],
+      "properties": {
+        "findings_count": { "type": "integer", "minimum": 0 },
+        "decisions_count": { "type": "integer", "minimum": 0 },
+        "last_topic": { "type": "string" }
+      }
+    },
+    "planning": {
+      "type": ["object", "null"],
+      "properties": {
+        "total_steps": { "type": "integer", "minimum": 1 },
+        "steps_generated": { "type": "integer", "minimum": 0 },
+        "granularity": { "type": "string", "enum": ["fine", "medium", "coarse"] }
+      }
+    },
+    "execution": {
+      "type": ["object", "null"],
+      "properties": {
+        "current_step": { "type": "integer", "minimum": 1 },
+        "completed_steps": { "type": "array", "items": { "type": "integer" } },
+        "step_results": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string", "enum": ["pending", "in_progress", "complete", "failed", "skipped", "rolled_back"] },
+              "notes": { "type": "string" },
+              "started": { "type": "string", "format": "date-time" },
+              "completed": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
+    },
+    "documentation": {
+      "type": ["object", "null"],
+      "properties": {
+        "type": { "type": "string", "enum": ["feature", "concept", "both", "skipped"] },
+        "path": { "type": "string" }
+      }
+    }
+  }
+}
