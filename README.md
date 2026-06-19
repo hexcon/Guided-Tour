@@ -1,166 +1,177 @@
-# Guided Tour
+<h1 align="center">🧭 Guided Tour</h1>
 
-A structured, seven-phase workflow framework designed for AI-assisted software development. It turns vague tasks into well-scoped, executable implementation plans — then walks through them step by step with built-in checkpoints, rollback, and documentation.
+<p align="center">
+  Turn a vague task into verified code, one checkpointed phase at a time.
+</p>
 
-## Why This Exists
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
+  <img src="https://img.shields.io/badge/Claude%20Code-skill-d97757" alt="Claude Code skill">
+  <img src="https://img.shields.io/badge/workflow-7%20phases-blue" alt="7-phase workflow">
+  <img src="https://img.shields.io/badge/built%20for-AI%20agents-555" alt="Built for AI agents">
+</p>
 
-AI coding assistants are powerful but stateless. They lose context between conversations, skip requirements gathering, jump straight to code, and produce steps that depend on invisible assumptions. Guided Tour solves this by giving AI agents a structured process to follow — with persistent artifacts that survive context resets.
+<p align="center">
+  <a href="#quickstart">Quickstart</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#artifacts-and-architecture">Architecture</a> ·
+  <a href="#contributing">Contributing</a>
+</p>
 
-**The core idea:** every step file must be executable by an agent with zero prior context. If you handed a single step file to a brand-new AI session, it should be able to complete it without asking "what did we decide earlier?"
+---
 
-## How It Works
+Guided Tour is a workflow skill for AI coding agents (built for [Claude Code](https://docs.claude.com/en/docs/claude-code)). It walks an agent through seven phases, from scoping a task to verifying the result, and writes every intermediate step to disk so the work survives a context reset.
 
-```
-1. Initialization    → Create session, set up artifact folder
-2. Requirements      → One open question, then a batched round of the rest
-3. Research          → Fan independent questions out to parallel subagents; loop until saturated
-4. Planning          → Generate self-contained step files; critique the plan before execution
-5. Execution         → Run each step as a verify loop; review the whole diff before declaring done
-6. Documentation     → Persist learnings to project docs
-7. Removal           → Clean up session artifacts
-```
+## Table of Contents
 
-Each phase produces artifacts. Each transition requires explicit user approval — the workflow never auto-advances between phases.
+- [Why Guided Tour](#why-guided-tour)
+- [Features](#features)
+- [Quickstart](#quickstart)
+- [How it works](#how-it-works)
+- [Artifacts and architecture](#artifacts-and-architecture)
+- [Design principles](#design-principles)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
 
-The phase sequence stays linear and human-gated. The work inside phases 3, 4, and 5 runs in loops: research repeats until a round adds nothing new, planning critiques and revises the draft, and execution verifies each step against a real check and reviews the full diff at the end. Every loop carries a cap, a convergence exit, and a checkable definition of done, so it raises quality without churning. SKILL.md documents these rules under Loop Discipline.
+## Why Guided Tour
 
-## Optimized for AI Agents
+AI coding agents forget. They lose context between sessions, skip requirements and jump to code, and write steps that lean on assumptions you cannot see. The result solves the wrong problem or breaks the moment the conversation resets.
 
-### Self-Contained Steps (The "Ralph Wiggum" Principle)
+Guided Tour fixes this by giving the agent a process and a memory. The process is seven human-gated phases. The memory is a folder of markdown artifacts. Hand any step to a brand-new agent with no history, and it can finish that step from the file alone.
 
-The most important design decision: every step file copies all context it needs inline. No references to "see requirement.md" or "as discussed earlier." Each step includes:
+## Features
 
-- **Copied** requirement summary (not a file reference)
-- **Copied** relevant decisions with rationale
-- Explicit file paths, code patterns shown inline
-- Validation commands and acceptance criteria
-- Rollback instructions
+- **Self-contained steps.** Each step file copies the context it needs, so a fresh agent runs it with zero prior history.
+- **Artifacts as memory.** Requirements, research, decisions, and plans live on disk, not in the chat window.
+- **Quality loops.** Research, planning, and execution iterate against a real check and stop when it passes.
+- **Human-gated checkpoints.** The workflow pauses between phases for your approval and never auto-advances.
+- **Resume after reset.** `session.json` records where you stopped; a new session reads it and picks up.
 
-This means an agent can pick up any step — even after a context window reset — and execute it without needing the full conversation history.
+## Quickstart
 
-### Session State as JSON
-
-Session progress is tracked in `session.json` with a defined [JSON schema](references/session-schema.json). An agent resuming work can read this file to understand exactly where the workflow left off: current phase, completed steps, step results, and decisions made.
-
-```json
-{
-  "slug": "001-auth-flow",
-  "phase": "execution",
-  "status": "in_progress",
-  "execution": {
-    "current_step": 3,
-    "completed_steps": [1, 2],
-    "step_results": { "1": { "status": "complete" }, "2": { "status": "complete" } }
-  }
-}
-```
-
-### Artifact-Based Memory
-
-All intermediate work (requirements, research findings, decisions, plans) is written to disk as markdown files in a structured folder. This is the agent's persistent memory — it doesn't depend on conversation history or context windows.
-
-```
-.claude/workflows/guided-tour/artifacts/001-auth-flow/
-├── session.json          # Current state
-├── requirement.md        # Scoped requirements
-├── research/
-│   ├── existing-auth.md  # Research findings
-│   ├── decisions.md      # Recorded decisions with rationale
-│   ├── notes.md          # Running discoveries during execution
-│   └── summary.md        # Research summary
-├── plan.md               # Implementation plan with dependency graph
-├── steps/
-│   ├── step-001.md       # Self-contained step files
-│   ├── step-002.md
-│   └── step-003.md
-└── execution-log.md      # Step-by-step results log
-```
-
-### Checkpoint-Driven Flow
-
-After every phase and every executed step, the workflow pauses and presents options: continue, review, revise, rollback, or pause. This keeps the human in control while letting the AI do the heavy lifting.
-
-## Using Guided Tour
-
-### Setup
-
-Copy or clone this repository into your AI agent's workflow directory. For Claude Code:
+Clone the skill into your Claude Code skills directory:
 
 ```bash
-# Clone into your project
-git clone https://github.com/hexcon/Guided-Tour.git .claude/workflows/guided-tour
+git clone https://github.com/hexcon/Guided-Tour.git ~/.claude/skills/guided-tour
 ```
 
-Then reference the workflow in your agent configuration (e.g., `CLAUDE.md`, custom slash commands, or agent instructions).
+Then invoke it from Claude Code, by command or in plain language:
 
-### Session Commands
-
-| Command | Action |
-|---------|--------|
-| `status` | Show current session state |
-| `back` | Return to previous phase |
-| `pause` | Save progress and exit |
-| `abort` | Discard session (with confirmation) |
-
-### Intent Routing
-
-The workflow recognizes natural language intents:
-
-| What you say | What happens |
-|---|---|
-| "new", "start", "build X" | Start Phase 1 |
-| "continue", "resume" | Resume active session |
-| "research", "investigate" | Jump to Phase 3 |
-| "plan", "design" | Jump to Phase 4 |
-| "execute", "run", "do step" | Jump to Phase 5 |
-| "status", "list" | List all sessions |
-
-### Step Sizing
-
-Plans are generated at three granularity levels:
-
-| Level | Time per step | Best for |
-|-------|---------------|----------|
-| Fine | 5-15 min | Complex or unfamiliar code |
-| Medium | 15-30 min | Most tasks (default) |
-| Coarse | 30-60 min | Well-understood changes |
-
-Each step targets **80-190 lines** — under 80 likely means missing context, over 190 means it should be split.
-
-## Repository Structure
-
+```text
+/guided-tour start a rate limiter for the API
 ```
-├── GUIDED-TOUR.md           # Pointer to SKILL.md (canonical routing)
-├── phases/
-│   ├── 01-initialization.md # Session setup
-│   ├── 02-requirements.md   # Batched requirements gathering
-│   ├── 03-research.md       # Codebase investigation and decision capture
-│   ├── 04-planning.md       # Step generation with dependency graphs
-│   ├── 05-execution.md      # Sequential step execution with checkpoints
-│   ├── 06-documentation.md  # Persist learnings to project docs
-│   └── 07-removal.md        # Artifact cleanup
-├── templates/               # Output format templates
-│   ├── requirement.md
-│   ├── plan.md
-│   ├── step.md
-│   ├── decisions.md
-│   ├── execution-log.md
-│   ├── research-topic.md
-│   └── research-summary.md
+
+Here is what a run looks like:
+
+```text
+You:  /guided-tour start a rate limiter for the API
+
+Phase 1  Creates a session folder under .claude/workflows/guided-tour/artifacts/
+Phase 2  Asks what you are building, then batches the rest into one round
+Phase 3  Researches the codebase with parallel subagents, records the decisions
+Phase 4  Writes a step-by-step plan, critiques it, and revises before you approve
+Phase 5  Executes each step, runs its test, and reviews the whole diff at the end
+Phase 6  Writes the docs you keep
+Phase 7  Cleans up the session
+```
+
+The workflow stops at every phase boundary and waits for you. Say `status` to see where a session stands, `back` to revisit a phase, `pause` to save and exit, or `abort` to discard.
+
+## How it works
+
+Seven phases run in order. Each one produces artifacts, and each transition waits for your approval.
+
+```mermaid
+flowchart TD
+    P1[1 · Initialization] --> P2[2 · Requirements]
+    P2 --> P3[3 · Research]
+    P3 --> P4[4 · Planning]
+    P4 --> P5[5 · Execution]
+    P5 --> P6[6 · Documentation]
+    P6 --> P7[7 · Removal]
+
+    P3 -. "fan out · record · saturate" .-> P3
+    P4 -. "draft · critique · revise (cap 2)" .-> P4
+    P5 -. "verify · retry · review (capped)" .-> P5
+
+    classDef loop fill:#eef,stroke:#88a;
+    class P3,P4,P5 loop;
+```
+
+The phase order stays linear and human-gated. The work *inside* phases 3, 4, and 5 runs in loops:
+
+- **Research (3)** fans independent questions out to parallel subagents, records each answer, and stops once a round adds nothing that changes a decision.
+- **Planning (4)** drafts the plan, has a fresh context critique it for blocking gaps, and revises. Capped at two passes.
+- **Execution (5)** runs each step test-first, closes the step only when its check passes, diagnoses failures before retrying, and reviews the whole diff at the end.
+
+### Loop Discipline
+
+Every loop follows three rules, so it sharpens the work instead of churning it:
+
+1. **Cap the iterations.** Each loop states a maximum. Hitting it is the fallback exit, not the normal one.
+2. **Exit on convergence.** Stop the moment the check passes or the critic finds no blocking gap.
+3. **Make "done" checkable.** Prefer a signal the agent can run (tests, build, linter) over its own "looks done" judgment.
+
+A loop closes only when the agent has run the check and read the output. "Should pass now" does not count.
+
+## Artifacts and architecture
+
+Each session writes to a folder in your **project** directory, not in the skill itself:
+
+```text
+{project-root}/.claude/workflows/guided-tour/artifacts/{NNN}-{slug}/
+├── session.json          # Current phase, step, and status
+├── requirement.md        # Scoped problem, success criteria
+├── research/
+│   ├── {topic}.md        # Findings per topic
+│   ├── decisions.md      # Choices with rationale
+│   ├── notes.md          # Discoveries during execution
+│   └── summary.md
+├── plan.md               # Steps, dependency graph, critique
+├── steps/
+│   └── step-{NNN}.md     # Self-contained step files
+└── execution-log.md      # Per-step result and the check that closed it
+```
+
+The skill repository itself:
+
+```text
+├── SKILL.md              # Canonical routing, transitions, Loop Discipline
+├── GUIDED-TOUR.md        # Named overview that points to SKILL.md
+├── phases/01-07          # Instructions per phase
+├── templates/            # Output formats (requirement, plan, step, log)
 └── references/
-    ├── step-format.md       # Self-containment specification
-    └── session-schema.json  # JSON schema for session state
+    ├── step-format.md        # Self-containment specification
+    ├── research-fanout.md    # Subagent dispatch contract
+    ├── plan-critique.md      # Plan review contract
+    └── session-schema.json   # JSON schema for session state
 ```
 
-## Design Principles
+## Design principles
 
-1. **Never auto-advance.** Every phase transition requires user confirmation.
-2. **Copy, don't reference.** Steps include all context inline — no cross-file dependencies during execution.
-3. **Artifacts are the source of truth.** Not conversation history, not memory, not assumptions.
-4. **Fail gracefully.** Every step has rollback instructions. Failed steps get diagnosed before they get retried, and retries are capped.
-5. **Human stays in control.** The AI does the work; the human approves the direction.
-6. **Verify against a check, not a vibe.** A loop closes when the agent has run a test, build, or explicit criterion and read the output. Loops cap their iterations and exit on convergence, so they sharpen the work instead of churning it.
+1. **Never auto-advance.** Every phase transition waits for your approval.
+2. **Copy, don't reference.** Steps carry their context inline, with no cross-file dependencies at execution time.
+3. **Artifacts are the source of truth.** Not chat history, not memory, not assumptions.
+4. **Fail gracefully.** Every step has a rollback. Failures get diagnosed before they get retried, and retries are capped.
+5. **You stay in control.** The agent does the work; you approve the direction.
+6. **Verify against a check, not a vibe.** A loop closes on observed output and exits on convergence.
+
+## Roadmap
+
+- [x] Seven-phase workflow with human-gated checkpoints
+- [x] Self-contained step files and artifact memory
+- [x] Quality loops in research, planning, and execution
+- [ ] Commit a `LICENSE` file
+- [ ] Ship a worked example session in the repo
+- [ ] Optional hook-enforced checks for the execution verify loop
+
+## Contributing
+
+Guided Tour is a skill, so changes are documentation changes. Edit `SKILL.md`, the phase files, the templates, or the references, then test the change the way you would test code: run the skill on a real task and confirm an agent follows it.
+
+Issues and pull requests are welcome at [github.com/hexcon/Guided-Tour](https://github.com/hexcon/Guided-Tour). Keep prose tight, keep each phase scannable, and ground new loops in the Loop Discipline rules.
 
 ## License
 
-MIT
+Released under the MIT License.
