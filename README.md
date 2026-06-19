@@ -12,15 +12,17 @@ AI coding assistants are powerful but stateless. They lose context between conve
 
 ```
 1. Initialization    → Create session, set up artifact folder
-2. Requirements      → Interview-style Q&A (one question at a time)
-3. Research          → Investigate codebase, gather context, record decisions
-4. Planning          → Generate self-contained step files
-5. Execution         → Run steps sequentially with checkpoints
+2. Requirements      → One open question, then a batched round of the rest
+3. Research          → Fan independent questions out to parallel subagents; loop until saturated
+4. Planning          → Generate self-contained step files; critique the plan before execution
+5. Execution         → Run each step as a verify loop; review the whole diff before declaring done
 6. Documentation     → Persist learnings to project docs
 7. Removal           → Clean up session artifacts
 ```
 
 Each phase produces artifacts. Each transition requires explicit user approval — the workflow never auto-advances between phases.
+
+The phase sequence stays linear and human-gated. The work inside phases 3, 4, and 5 runs in loops: research repeats until a round adds nothing new, planning critiques and revises the draft, and execution verifies each step against a real check and reviews the full diff at the end. Every loop carries a cap, a convergence exit, and a checkable definition of done, so it raises quality without churning. SKILL.md documents these rules under Loop Discipline.
 
 ## Optimized for AI Agents
 
@@ -64,6 +66,7 @@ All intermediate work (requirements, research findings, decisions, plans) is wri
 ├── research/
 │   ├── existing-auth.md  # Research findings
 │   ├── decisions.md      # Recorded decisions with rationale
+│   ├── notes.md          # Running discoveries during execution
 │   └── summary.md        # Research summary
 ├── plan.md               # Implementation plan with dependency graph
 ├── steps/
@@ -127,10 +130,10 @@ Each step targets **80-190 lines** — under 80 likely means missing context, ov
 ## Repository Structure
 
 ```
-├── GUIDED-TOUR.md           # Workflow overview and routing table
+├── GUIDED-TOUR.md           # Pointer to SKILL.md (canonical routing)
 ├── phases/
 │   ├── 01-initialization.md # Session setup
-│   ├── 02-requirements.md   # Interview-style requirements gathering
+│   ├── 02-requirements.md   # Batched requirements gathering
 │   ├── 03-research.md       # Codebase investigation and decision capture
 │   ├── 04-planning.md       # Step generation with dependency graphs
 │   ├── 05-execution.md      # Sequential step execution with checkpoints
@@ -154,8 +157,9 @@ Each step targets **80-190 lines** — under 80 likely means missing context, ov
 1. **Never auto-advance.** Every phase transition requires user confirmation.
 2. **Copy, don't reference.** Steps include all context inline — no cross-file dependencies during execution.
 3. **Artifacts are the source of truth.** Not conversation history, not memory, not assumptions.
-4. **Fail gracefully.** Every step has rollback instructions. Failed steps can be retried, skipped, or diagnosed.
+4. **Fail gracefully.** Every step has rollback instructions. Failed steps get diagnosed before they get retried, and retries are capped.
 5. **Human stays in control.** The AI does the work; the human approves the direction.
+6. **Verify against a check, not a vibe.** A loop closes when the agent has run a test, build, or explicit criterion and read the output. Loops cap their iterations and exit on convergence, so they sharpen the work instead of churning it.
 
 ## License
 

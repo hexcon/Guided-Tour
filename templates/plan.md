@@ -35,3 +35,8 @@ Output format for `artifacts/{session}/plan.md`.
 ## Rollback Strategy
 
 {High-level: how to recover if implementation fails}
+
+## Critique
+
+Reviewed for blocking gaps before execution: {clean | gaps found and fixed}
+- {gap → fix, if any}

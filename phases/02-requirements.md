@@ -1,13 +1,16 @@
 # Phase 2: Requirements Gathering
 
-Interview-style: ONE question at a time, wait for answer, adapt next question.
+Two passes: one open question, then a single batched round for the rest. Front-loading the requirements in one round costs fewer turns and gives the model a well-specified task to reason against.
 
 ## Process
 
-1. Start with open-ended problem question
-2. Based on answer, drill down or move to next category (scope, success, context, constraints)
-3. After 3-7 questions (2-3 for small tasks), summarize
-4. Confirm accuracy
+1. Ask one open-ended problem question: what are we building or fixing, and why.
+2. From the answer, identify the remaining unknowns across scope, success criteria, context (files, systems), and constraints.
+3. Present those unknowns as one batched set using the AskUserQuestion tool (multi-question form), not one at a time. Pre-fill each question with the most likely option so the user can confirm fast.
+4. Ask a targeted follow-up round only if an answer opens a material new unknown. Otherwise summarize.
+5. Confirm the summary with the user.
+
+Small tasks: the open question plus one short batch is usually enough.
 
 ## Output
 
@@ -31,7 +34,7 @@ Write `requirement.md` using `templates/requirement.md`:
 
 - Proceed to Research → Phase 3
 - Skip research → Phase 4 (if well-understood task)
-- Revise → Continue interview
+- Revise → Ask another round
 ```
 
 ## State Update

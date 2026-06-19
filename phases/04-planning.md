@@ -2,6 +2,8 @@
 
 Generate execution plan with self-contained steps.
 
+Reason through the sequencing and failure modes before writing steps. Where two approaches compete, evaluate both briefly, commit to one, and record why in the plan.
+
 ## Process
 
 1. **Select granularity**
@@ -21,7 +23,13 @@ Generate execution plan with self-contained steps.
    - Follow `references/step-format.md` for self-containment
    - Target 80-190 lines each
 
-5. **Initialize execution-log.md** (use `templates/execution-log.md`)
+5. **Critique the plan before execution** (loop, cap 2 passes). A flawed plan is far cheaper to fix here than after partial execution.
+   - Review the draft plan and steps against the requirement and decisions, ideally in a fresh context (a subagent that sees only the plan, the requirement, and the success criteria — not the reasoning that produced the plan). Read [../references/plan-critique.md](../references/plan-critique.md) for the critique contract.
+   - The critique looks for blocking gaps only: a missing prerequisite, a step that depends on a later step, an unstated assumption, a step with no way to verify it, a failure mode with no rollback.
+   - Fold the blocking gaps back into the plan and steps. Ignore style nits and speculative "nice to have" findings — chasing every comment leads to over-engineering.
+   - Exit when a pass raises no blocking gap, or after the second pass. This is the convergence exit from Loop Discipline.
+
+6. **Initialize execution-log.md** (use `templates/execution-log.md`)
 
 ## Output
 

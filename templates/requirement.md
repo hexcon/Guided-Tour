@@ -34,7 +34,7 @@ Output format for `artifacts/{session}/requirement.md`.
 
 - {Technical/time/compatibility constraint}
 
-## Interview Transcript
+## Q&A Transcript
 
 <details>
 <summary>Q&A</summary>
